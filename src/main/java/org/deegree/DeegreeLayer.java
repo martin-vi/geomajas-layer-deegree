@@ -54,7 +54,7 @@ public class DeegreeLayer implements VectorLayer {
 	
 	private WFSFeatureType featureType;
 
-	private String getCapabilityRequest = "?service=WFS&request=GetCapabilities";
+	private String getCapabilityRequest = "?service=WFS&request=GetCapabilities&version=1.1.0";
 
 	private org.deegree.geometry.Envelope featureBBox;
 
@@ -68,11 +68,30 @@ public class DeegreeLayer implements VectorLayer {
 	private VectorLayerInfo layerInfo;
 
 	private CoordinateReferenceSystem crs;
+
+	private String id;
+
+	private int srid;
 	
+
 	@PostConstruct
 	public void initLayer() throws OWSExceptionReport, XMLStreamException, IOException, LayerException {
+
+
+		//	    EPSG:31466 (Gauss-Krüger 2. Meridian)
+		//	    EPSG:31467 (Gauss-Krüger 3. Meridian)
+		//	    EPSG:4326 (WGS84)
+		//	    EPSG:4258 (ETRS89, geographische Koordinaten)
+		//	    EPSG:900913 (MERCATOR (GOOGLE))
+		//	    EPSG:25832 (ETRS89, UTM, Zone 32)
+		//	    EPSG:25833 (ETRS89, UTM, Zone 33)
+
 		
+		// utm 33 ->  EPSG:32633
 		crs = geoService.getCrs2(layerInfo.getCrs());
+		//crs = geoService.getCrs2("EPSG:31468");
+		//crs = geoService.getCrs2("EPSG:900913");
+		srid = geoService.getSridFromCrs(this.crs);
 		
 		// TODO - check if get getCapabilityRequest (query part) is already in url ...
 		URL fullUrl = new URL( url + getCapabilityRequest );
@@ -110,7 +129,7 @@ public class DeegreeLayer implements VectorLayer {
         
         // TODO get CRS from client or featureType
         // from config, should be 31468
-        featureModel = new DeegreeFeatureModel( geoService.getSridFromCrs(crs) ); // geoService.getSridFromCrs(deegreeWFScrs)
+        featureModel = new DeegreeFeatureModel( this.srid ); // geoService.getSridFromCrs(deegreeWFScrs)
         
 	}
 	
@@ -134,9 +153,13 @@ public class DeegreeLayer implements VectorLayer {
 
 	@Override
 	public String getId() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.id;
 	}
+	
+	public void setId(String id) {
+		this.id = id;
+	}
+	
 
 	@Override
 	public boolean isCreateCapable() {
@@ -197,14 +220,14 @@ public class DeegreeLayer implements VectorLayer {
             Iterator<Feature> iter = wfsFc.getMembers();
             
             // debuging
-            int i = 0;
+            /*int i = 0;
             while ( iter.hasNext() ) { // && i < 10
                 Feature f = iter.next();
                 List<Property> geom = f.getGeometryProperties();
                 for (Property g : geom) { System.out.println(g); }
                 i++;
-            }
-			result.close(); LOG.debug( i + " features found" );
+            }*/
+			//result.close(); LOG.debug( i + " features found" );
 	        
 			//List<?> list = null;
 			//return list.iterator();

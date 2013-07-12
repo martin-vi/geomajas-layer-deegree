@@ -5,6 +5,8 @@ import java.util.Map;
 
 import javax.xml.namespace.QName;
 
+import org.deegree.commons.tom.TypedObjectNode;
+import org.deegree.geometry.standard.AbstractDefaultGeometry;
 import org.geomajas.configuration.VectorLayerInfo;
 import org.geomajas.layer.LayerException;
 import org.geomajas.layer.feature.Attribute;
@@ -60,14 +62,20 @@ public class DeegreeFeatureModel implements FeatureModel {
 		org.deegree.feature.Feature deegreeFeature = (org.deegree.feature.Feature) feature;
 		
 		// TODO get all geometries
-		org.deegree.commons.tom.gml.property.Property geometry = deegreeFeature.getGeometryProperties().get(0);
-				
-		Geometry jtsGeometry = null;
-		try {
-			jtsGeometry = new WKTReader().read(geometry.toString());
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
+		//org.deegree.commons.tom.gml.property.Property geometry = deegreeFeature.getGeometryProperties().get(0);
+		org.deegree.geometry.Geometry geometry = org.deegree.filter.utils.FilterUtils.getGeometryValue(
+					deegreeFeature.getGeometryProperties().get(0).getValue()
+				);
+		AbstractDefaultGeometry test = (AbstractDefaultGeometry)geometry;
+		//geometry.getJTSGeometry()
+		
+		Geometry jtsGeometry = test.getJTSGeometry();
+		
+		//jtsGeometry = new WKTReader().read(geometry.toString());
+		//TypedObjectNode a = geometry.getValue();
+		
+		//jtsGeometry = (com.vividsolutions.jts.geom.Geometry)geometry;
+		
 		jtsGeometry.setSRID(srid);
 		return (Geometry) jtsGeometry.clone();
 	}

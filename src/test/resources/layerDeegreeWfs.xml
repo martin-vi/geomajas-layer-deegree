@@ -30,10 +30,11 @@ http://www.springframework.org/schema/tx http://www.springframework.org/schema/t
 		</bean> -->
 
 	<bean name="layerWfs" class="org.deegree.DeegreeLayer">
-		<property name="url"
-			value="http://mittelsachsen-atlas.de/polymap-work/services/INSPIRE/Schutzgebiete" />
-		<property name="featureTypeName" value="Flaechennaturdenkmale" />
-		<property name="featureGeometyPropertyName" value="the_geom" />
+		<!-- <property name="url"
+			value="http://mittelsachsen-atlas.de/polymap-work/services/INSPIRE/Schutzgebiete" /> -->
+	    <property name="url" value="http://localhost:8090/services/test" />
+		<property name="featureTypeName" value="FlNaturDNEU" />
+		<property name="featureGeometyPropertyName" value="geometryProperty" />
 		<property name="layerInfo" ref="layerWfsLayerInfo" />
 	</bean>
 
@@ -43,15 +44,15 @@ http://www.springframework.org/schema/tx http://www.springframework.org/schema/t
 		WGS84 Bounds: 10.5000, 47.2700, 13.5000, 55.0600
 		Projected Bounds: 4386596.4101, 5237914.5325, 4613610.5843, 6104496.9694
  		-->		
-		<property name="crs" value="EPSG:31468" />
-		<property name="maxExtent">
+		<property name="crs" value="EPSG:4326" />
+		<!-- <property name="maxExtent">
 			<bean class="org.geomajas.geometry.Bbox">
 				<property name="x" value="4386596.4101" />
 				<property name="y" value="5237914.5325" />
 				<property name="width" value="227014.1742" />
 				<property name="height" value="866582.4369" />
 			</bean>
-		</property>
+		</property> -->
 		<property name="featureInfo" ref="layerWfsLayerFeatureInfo" />
 		<property name="namedStyleInfos">
 			<list>

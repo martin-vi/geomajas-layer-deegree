@@ -13,6 +13,7 @@
 
 
 	<logger name="org.deegree.DeegreeLayer" level="TRACE" />
+	<logger name="org.geomajas.internal" level="DEBUG" />
 
 	<root level="WARN" >
 		<appender-ref ref="STDOUT"/>

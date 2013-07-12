@@ -2,9 +2,15 @@ package org.deegree;
 
 import java.util.List;
 
+import javax.imageio.ImageIO;
+
 import org.geomajas.configuration.NamedStyleInfo;
+import org.geomajas.configuration.client.ClientMapInfo;
+import org.geomajas.configuration.client.ClientVectorLayerInfo;
+import org.geomajas.geometry.Bbox;
 import org.geomajas.global.GeomajasException;
 import org.geomajas.layer.LayerException;
+import org.geomajas.layer.VectorLayer;
 import org.geomajas.layer.VectorLayerService;
 import org.geomajas.layer.feature.InternalFeature;
 import org.geomajas.service.GeoService;
@@ -53,8 +59,16 @@ public class TestDeegreeLayer {
 		
 		securityManager.createSecurityContext(null);
 		
-		List<InternalFeature> features = vectorLayerService.getFeatures("layerWfs", geoService.getCrs("EPSG:31468"), Filter.INCLUDE, new NamedStyleInfo(), VectorLayerService.FEATURE_INCLUDE_ALL);
+		
+		@SuppressWarnings("deprecation")
+		List<InternalFeature> features = vectorLayerService.getFeatures(
+				"layerWfs",
+				geoService.getCrs(layerWfs.getLayerInfo().getCrs()),
+				Filter.INCLUDE,
+				null,
+				VectorLayerService.FEATURE_INCLUDE_GEOMETRY);
 		Assert.assertNotNull(features);
 		Assert.assertFalse(features.isEmpty());
 	}
+	
 }
