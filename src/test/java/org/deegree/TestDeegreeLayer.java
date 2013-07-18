@@ -1,9 +1,11 @@
 package org.deegree;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.imageio.ImageIO;
 
+import org.geomajas.configuration.FeatureInfo;
 import org.geomajas.configuration.NamedStyleInfo;
 import org.geomajas.configuration.client.ClientMapInfo;
 import org.geomajas.configuration.client.ClientVectorLayerInfo;
@@ -12,10 +14,12 @@ import org.geomajas.global.GeomajasException;
 import org.geomajas.layer.LayerException;
 import org.geomajas.layer.VectorLayer;
 import org.geomajas.layer.VectorLayerService;
+import org.geomajas.layer.feature.Attribute;
 import org.geomajas.layer.feature.InternalFeature;
 import org.geomajas.service.GeoService;
 import org.geotools.filter.text.cql2.CQL;
 import org.geotools.filter.text.cql2.CQLException;
+import org.geotools.filter.text.ecql.ECQL;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,6 +40,9 @@ public class TestDeegreeLayer {
 	
 	@Autowired
 	private VectorLayerService vectorLayerService;
+	
+	@Autowired
+	private FeatureInfo vectorFeatureInfo;
 
 	@Autowired
 	private GeoService geoService;
@@ -55,6 +62,11 @@ public class TestDeegreeLayer {
 	}
 	
 	@Test
+	public void testVectorFeatureInfo() {
+		System.out.println(vectorFeatureInfo.getGeometryType().getName());
+	}
+	
+	@Test
 	public void testGeomajasLayer() throws LayerException, GeomajasException {
 		
 		securityManager.createSecurityContext(null);
@@ -67,8 +79,28 @@ public class TestDeegreeLayer {
 				Filter.INCLUDE,
 				null,
 				VectorLayerService.FEATURE_INCLUDE_GEOMETRY);
+		
 		Assert.assertNotNull(features);
 		Assert.assertFalse(features.isEmpty());
+		
+		InternalFeature singleFeature = features.get(0);
+		Map<String, Attribute> attrs = singleFeature.getAttributes();
+		System.out.println("Attributes: " + attrs);
+	}
+	
+	@Test
+	public void testCQLFilter() throws CQLException {
+		
+		/*Filter bboxFilter = CQL.toFilter("BBOX(the_geom, " +
+				"POLYGON ((14.054227941176457 50.30683519635355, " +
+				"14.054227941176457 50.79547083733429," +
+				"14.773897058823515 50.79547083733429, " +
+				"14.773897058823515 50.30683519635355, " +
+				"14.054227941176457 50.30683519635355)) )" );*/
+		Filter bboxFilter = ECQL.toFilter("BBOX(geometryProperty, 13.361, 50.859, 13.440, 50.927 )");
+		
+		System.out.println(bboxFilter.toString());
+		
 	}
 	
 }

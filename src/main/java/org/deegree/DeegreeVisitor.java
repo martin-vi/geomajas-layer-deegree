@@ -1,14 +1,22 @@
 package org.deegree;
 
+import java.util.Collection;
+
 import javax.xml.namespace.QName;
 
 import org.deegree.cs.exceptions.UnknownCRSException;
 import org.deegree.cs.persistence.CRSManager;
+import org.deegree.cs.persistence.CRSStore;
+import org.deegree.cs.refs.coordinatesystem.CRSRef;
 import org.deegree.filter.expression.ValueReference;
 import org.deegree.geometry.Envelope;
 import org.deegree.geometry.GeometryFactory;
+import org.deegree.geometry.standard.AbstractDefaultGeometry;
+import org.deegree.geometry.standard.DefaultEnvelope;
+import org.geomajas.layer.LayerException;
 import org.opengis.filter.And;
 import org.opengis.filter.ExcludeFilter;
+import org.opengis.filter.Filter;
 import org.opengis.filter.FilterVisitor;
 import org.opengis.filter.Id;
 import org.opengis.filter.IncludeFilter;
@@ -23,6 +31,8 @@ import org.opengis.filter.PropertyIsLessThanOrEqualTo;
 import org.opengis.filter.PropertyIsLike;
 import org.opengis.filter.PropertyIsNotEqualTo;
 import org.opengis.filter.PropertyIsNull;
+import org.opengis.filter.expression.Expression;
+import org.opengis.filter.expression.Literal;
 import org.opengis.filter.spatial.BBOX;
 import org.opengis.filter.spatial.Beyond;
 import org.opengis.filter.spatial.Contains;
@@ -34,25 +44,75 @@ import org.opengis.filter.spatial.Intersects;
 import org.opengis.filter.spatial.Overlaps;
 import org.opengis.filter.spatial.Touches;
 import org.opengis.filter.spatial.Within;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.vividsolutions.jts.geom.Geometry;
 
 
 public class DeegreeVisitor implements FilterVisitor {
 
+	private final Logger log = LoggerFactory.getLogger(DeegreeVisitor.class);
+	
+	private DeegreeFeatureModel deegreeModel;
+	private int srid;
+	private String geomName;
+
+	private CRSRef deegreeCRS;
+
+	public DeegreeVisitor(DeegreeFeatureModel deegreeModel) throws LayerException {
+		this.deegreeModel = deegreeModel;
+		srid = deegreeModel.getSrid();
+
+		new org.deegree.cs.persistence.CRSManager();
+		//TODO hard coded geomajas viewport crs
+        this.deegreeCRS = CRSManager.getCRSRef("EPSG:" + this.srid);
+		
+		geomName = deegreeModel.getGeometryAttributeName();
+		if ( geomName == null) {
+			//TODO default fallback
+			geomName = "geometry";
+		}
+		
+	}
+	
 	/* logic operators */ 
 	@Override
 	public Object visit(And filter, Object extraData) {
-		return new org.deegree.filter.logical.And(null);
+		org.deegree.filter.Operator dfilter = null;
+		
+		for (Filter element : filter.getChildren()) {
+			if (dfilter == null) {
+				dfilter = (org.deegree.filter.Operator) element.accept(this, extraData);
+				//c = (Criterion) element.accept(this, userData)
+				
+			} else {
+				//c = Restrictions.and(c, (Criterion) element.accept(this, userData));
+				dfilter =  new org.deegree.filter.logical.And(
+							dfilter, (org.deegree.filter.Operator) element.accept(this, extraData)
+						);
+			}	
+		}
+		return dfilter;
 	}
 
 	@Override
 	public Object visit(Not filter, Object extraData) {
-		return new org.deegree.filter.logical.Not(null);
+		org.deegree.filter.Operator dfilter = (org.deegree.filter.Operator) filter.getFilter().accept(this, extraData);
+		return new org.deegree.filter.logical.Not(dfilter); // TODO TEST!!!
 	}
 
 	@Override
 	public Object visit(Or filter, Object extraData) {
-		return new org.deegree.filter.logical.Or(null);
+		org.deegree.filter.Operator dfilter = null;
+		for (Filter element : filter.getChildren()) {
+			if (dfilter == null) {
+				dfilter = (org.deegree.filter.Operator) element.accept(this, extraData);
+			} else {
+				dfilter = new org.deegree.filter.logical.Or( dfilter, (org.deegree.filter.Operator) element.accept(this, extraData) );
+			}
+		}
+		return dfilter; // TODO TEST!!!
 	}	
 
 	/* PropertyIsSOMETHING operator */
@@ -101,25 +161,26 @@ public class DeegreeVisitor implements FilterVisitor {
 		return new org.deegree.filter.comparison.PropertyIsNull(null, null);
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public Object visit(BBOX filter, Object extraData) {
-		Envelope envelope = null;
-		try {
-			envelope = new GeometryFactory().createEnvelope(
-							filter.getMinX(), filter.getMaxX(),
-							filter.getMinY(), filter.getMaxY(),
-							CRSManager.lookup( "EPSG:4326" ));
-		} catch (UnknownCRSException e) {
-			e.printStackTrace();
-		}
+		Envelope envelope = new GeometryFactory().createEnvelope(
+							filter.getMinX(),filter.getMinY(),  
+							filter.getMaxX(),filter.getMaxY(),
+							this.deegreeCRS );
 		
+        /*
         String NS = "http://www.polymap.org/";
         QName qnameProp = new QName(NS, "the_geom", "polymap" );
         ValueReference prop = new ValueReference(qnameProp);
+        */
 		
+		QName qnameProp = new QName(this.deegreeModel.getNameSpaceURI() , this.deegreeModel.getGeometryAttributeName() );
+        ValueReference prop = new ValueReference(qnameProp);
+        
 		return new org.deegree.filter.spatial.BBOX( prop, envelope );
 	}
-
+	
 	@Override
 	public Object visit(ExcludeFilter filter, Object extraData) {
 		return null;
@@ -132,6 +193,19 @@ public class DeegreeVisitor implements FilterVisitor {
 
 	@Override
 	public Object visit(Id filter, Object extraData) {
+		/*
+		String idName;
+		try {
+			idName = featureModel.getEntityMetadata().getIdentifierPropertyName();
+		} catch (LayerException e) {
+			log.warn("Cannot read idName, defaulting to 'id'", e);
+			idName = HIBERNATE_ID;
+		}
+		Collection<?> c = (Collection<?>) castLiteral(filter.getIdentifiers(), idName);
+		return Restrictions.in(idName, c);
+		*/
+		
+		String idName;		
 		return new org.deegree.filter.IdFilter("");
 	}
 
@@ -173,10 +247,45 @@ public class DeegreeVisitor implements FilterVisitor {
 
 	@Override
 	public Object visit(Intersects filter, Object extraData) {
-		// TODO Auto-generated method stub
-		return null;
+		QName qnameProp = new QName(this.deegreeModel.getNameSpaceURI(), 
+				this.deegreeModel.getGeometryAttributeName() );
+        ValueReference prop = new ValueReference(qnameProp);
+        
+		return new org.deegree.filter.spatial.Intersects(prop, asGeometry( getLiteralValue( filter.getExpression2() ) ) );
 	}
 
+	/**
+	 * Get the literal value for an expression.
+	 * 
+	 * @param expression expression
+	 * @return literal value
+	 */
+	private Object getLiteralValue(Expression expression) {
+		if (!(expression instanceof Literal)) {
+			throw new IllegalArgumentException("Expression " + expression + " is not a Literal.");
+		}
+		return ((Literal) expression).getValue();
+	}
+	/**
+	 * Mapping of the JTS geometry object to the deegree AbstractDefaultGeometry type
+	 * @param com.vividsolutions.jts.geom.Geometry
+	 * @return org.deegree.geometry.standard.AbstractDefaultGeometry
+	 */
+	private org.deegree.geometry.standard.AbstractDefaultGeometry asGeometry(Object geometry) {
+		
+		Geometry geom = (Geometry) geometry;
+		
+		if (geom instanceof Geometry) {
+
+			AbstractDefaultGeometry deegreeGeom = new DefaultEnvelope(null, null);
+			deegreeGeom = deegreeGeom.createFromJTS(geom, this.deegreeCRS); // geom, org.deegree.cs.coordinatesystems.ICRS crs			
+			
+			return deegreeGeom;
+		} else {
+			throw new IllegalStateException("Cannot handle " + geometry + " as geometry.");
+		}
+	}
+	
 	@Override
 	public Object visit(Overlaps filter, Object extraData) {
 		// TODO Auto-generated method stub

@@ -2,6 +2,7 @@ package org.deegree;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -15,6 +16,7 @@ import org.deegree.cs.exceptions.TransformationException;
 import org.deegree.cs.exceptions.UnknownCRSException;
 import org.deegree.cs.persistence.CRSManager;
 import org.deegree.feature.Feature;
+import org.deegree.filter.Operator;
 import org.deegree.filter.OperatorFilter;
 import org.deegree.filter.expression.ValueReference;
 import org.deegree.filter.spatial.BBOX;
@@ -30,6 +32,7 @@ import org.geomajas.layer.LayerException;
 import org.geomajas.layer.VectorLayer;
 import org.geomajas.layer.feature.FeatureModel;
 import org.geomajas.service.GeoService;
+import org.opengis.filter.And;
 import org.opengis.filter.Filter;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.slf4j.Logger;
@@ -42,6 +45,8 @@ import com.vividsolutions.jts.geom.Envelope;
 @Api
 public class DeegreeLayer implements VectorLayer {
 	
+	private static final Operator[] Operator = null;
+
 	private Logger LOG = LoggerFactory.getLogger( DeegreeLayer.class );
 
 	private WFSClient client;
@@ -65,6 +70,7 @@ public class DeegreeLayer implements VectorLayer {
 	@Autowired
 	private GeoService geoService; // used for csr stuff 
 
+	@Autowired
 	private VectorLayerInfo layerInfo;
 
 	private CoordinateReferenceSystem crs;
@@ -85,14 +91,12 @@ public class DeegreeLayer implements VectorLayer {
 		//	    EPSG:900913 (MERCATOR (GOOGLE))
 		//	    EPSG:25832 (ETRS89, UTM, Zone 32)
 		//	    EPSG:25833 (ETRS89, UTM, Zone 33)
-
-		
-		// utm 33 ->  EPSG:32633
+		//		crs = geoService.getCrs2("EPSG:900913");
+				
+		/* configured crs */
 		crs = geoService.getCrs2(layerInfo.getCrs());
-		//crs = geoService.getCrs2("EPSG:31468");
-		//crs = geoService.getCrs2("EPSG:900913");
 		srid = geoService.getSridFromCrs(this.crs);
-		
+			
 		// TODO - check if get getCapabilityRequest (query part) is already in url ...
 		URL fullUrl = new URL( url + getCapabilityRequest );
 		LOG.debug("WFS request url: " + fullUrl.toString());
@@ -118,18 +122,26 @@ public class DeegreeLayer implements VectorLayer {
         this.featureBBox = this.featureType.getWGS84BoundingBox();
         LOG.debug( "feature type WGS84 bounding box " + this.featureBBox.toString() );
         
-        
         // TODO feature property needed?
         QName featureQName = this.featureType.getName();
+        
+        //geometry name
+        // this.featureGeometyPropertyName
+        //	OR
+        // this.layerInfo.getFeatureInfo().getGeometryType().getName()
+        
         QName propertyQName = new QName(
-        		featureQName.getNamespaceURI(), this.featureGeometyPropertyName, featureQName.getPrefix() );
+        		featureQName.getNamespaceURI(), this.layerInfo.getFeatureInfo().getGeometryType().getName(), featureQName.getPrefix() );
         featureProp = new ValueReference( propertyQName );
         LOG.debug( featureProp.toString() );		
         //this.featureType.getName().valueOf(this.featureGeometyPropertyName) );
         
+        
         // TODO get CRS from client or featureType
         // from config, should be 31468
-        featureModel = new DeegreeFeatureModel( this.srid ); // geoService.getSridFromCrs(deegreeWFScrs)
+        featureModel = new DeegreeFeatureModel( this.srid, featureQName.getNamespaceURI() ); // geoService.getSridFromCrs(deegreeWFScrs)
+        featureModel.setLayerInfo(this.layerInfo);
+
         
 	}
 	
@@ -203,34 +215,40 @@ public class DeegreeLayer implements VectorLayer {
 
 	@Override
 	public Iterator<?> getElements(Filter filter, int offset, int maxResultSize) throws LayerException {
-		try {
-		    org.deegree.filter.Filter deegreeFilter = null;
-		    GetFeatureResponse<Feature> result = null;
-		    
-		    /* dummy filter */
+		try {		
+			
+			org.deegree.filter.Filter dFilter = null;
+			
+
+			//DummyFilter
+		    /*
+			org.deegree.filter.Filter deegreeFilter = null;
 		    org.deegree.geometry.Envelope envelopeBox = null;
 			envelopeBox = new GeometryFactory().createEnvelope(13.361, 50.859, 13.440, 50.927, CRSManager.lookup( "EPSG:4326" ));
 	        deegreeFilter = new OperatorFilter( new BBOX( this.featureProp, envelopeBox ) );
-		    
+			*/
+			
+			// visitor pattern filter usage 
+			if (filter != null) {
+				if (filter != Filter.INCLUDE) {
+			        DeegreeVisitor deegreeVisitor = new DeegreeVisitor( this.featureModel );
+			        
+			        org.deegree.filter.Operator op = (org.deegree.filter.Operator) filter.accept(deegreeVisitor, null);
+			        if (op != null) {
+			        	dFilter = new OperatorFilter( op );
+			        }
+				}
+			}
+						
 			// do getFeature request
-			result = client.getFeatures(this.featureType.getName(), deegreeFilter);
+		    GetFeatureResponse<Feature> result = null;
+	        //result = client.getFeatures(this.featureType.getName(), deegreeFilter);
+	        result = client.getFeatures(this.featureType.getName(), dFilter);
 			
 			// iterate over features
             WFSFeatureCollection<Feature> wfsFc = result.getAsWFSFeatureCollection();
             Iterator<Feature> iter = wfsFc.getMembers();
             
-            // debuging
-            /*int i = 0;
-            while ( iter.hasNext() ) { // && i < 10
-                Feature f = iter.next();
-                List<Property> geom = f.getGeometryProperties();
-                for (Property g : geom) { System.out.println(g); }
-                i++;
-            }*/
-			//result.close(); LOG.debug( i + " features found" );
-	        
-			//List<?> list = null;
-			//return list.iterator();
             return iter;
 			
 			
@@ -239,19 +257,14 @@ public class DeegreeLayer implements VectorLayer {
 			//e.printStackTrace();
 			throw new LayerException(e);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			throw new LayerException(e);
 		} catch (XMLParsingException e) {
-			// TODO Auto-generated catch block
 			throw new LayerException(e);
 		} catch (XMLStreamException e) {
-			// TODO Auto-generated catch block
 			throw new LayerException(e);
 		} catch (UnknownCRSException e) {
-			// TODO Auto-generated catch block
 			throw new LayerException(e);
 		} catch (TransformationException e) {
-			// TODO Auto-generated catch block
 			throw new LayerException(e);
 		}
 	}
