@@ -1,9 +1,12 @@
 package org.deegree;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 
+import org.deegree.feature.Feature;
+import org.deegree.protocol.wfs.client.WFSFeatureCollection;
 import org.geomajas.configuration.FeatureInfo;
 import org.geomajas.global.GeomajasException;
 import org.geomajas.layer.LayerException;
@@ -145,6 +148,9 @@ public class TestDeegreeLayer {
 
 	}
 	
+	/*
+	 * testing the bound of filtered results (here filtered with bbox)
+	 */
 	@Test
 	public void testFilteredBounds() throws LayerException, CQLException {
 		
@@ -163,6 +169,18 @@ public class TestDeegreeLayer {
 		
 	}
 
+	@Test
+	public void testFilterPropertyIsLike() throws CQLException, GeomajasException {
+		Filter isLike = ECQL.toFilter( "Gebietsname LIKE '%teich%'" );
+	
+		List<InternalFeature> features = vectorLayerService.getFeatures(
+				"layerWfs", this.crs, isLike, null, VectorLayerService.FEATURE_INCLUDE_ALL);
+
+		for (InternalFeature f : features) {
+			System.out.format( "id : %s , attrs : %s\n", f.getId(), f.getAttributes() );
+		}
+		 
+	}
 	
 //	@Test
 //	public void testReadAllFeatures() throws GeomajasException, CQLException {

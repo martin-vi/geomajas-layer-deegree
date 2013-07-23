@@ -11,6 +11,7 @@ import org.deegree.commons.tom.gml.property.Property;
 import org.deegree.commons.tom.primitive.PrimitiveValue;
 import org.deegree.feature.GenericFeature;
 import org.deegree.geometry.standard.AbstractDefaultGeometry;
+import org.deegree.protocol.wfs.metadata.WFSFeatureType;
 import org.geomajas.configuration.VectorLayerInfo;
 import org.geomajas.layer.LayerException;
 import org.geomajas.layer.entity.EntityAttributeService;
@@ -33,6 +34,8 @@ public class DeegreeFeatureModel implements FeatureModel {
 	
 	private String nameSpaceURI;
 
+	private WFSFeatureType featureType;
+
 	/* Entity mapping for Attributes */
 //	@Autowired
 //	private EntityAttributeService entityMappingService;
@@ -40,21 +43,22 @@ public class DeegreeFeatureModel implements FeatureModel {
 	
 	//private Object dICRS;
 	
-	public DeegreeFeatureModel( int srid, String nameSpaceURI ) throws LayerException  {
+	public DeegreeFeatureModel( int srid, WFSFeatureType featureType ) throws LayerException  {
 		super();
 		this.srid = srid;
-		//this.dICRS = org.deegree.cs.coordinatesystems.ICRS;
 		
-		this.nameSpaceURI = nameSpaceURI;
+		this.featureType = featureType;
 	}
-	
-	public String getNameSpaceURI() {
-		return this.nameSpaceURI;
+
+	public QName getNSQName(String propName) {
+		return new QName(
+				this.featureType.getName().getNamespaceURI(),
+				propName, this.featureType.getName().getPrefix()
+				);
 	}
-	
+		
 	@Override
-	public void setLayerInfo(VectorLayerInfo vectorLayerInfo)
-			throws LayerException {
+	public void setLayerInfo(VectorLayerInfo vectorLayerInfo) {
 		this.vectorLayerInfo = vectorLayerInfo;
 	}
 

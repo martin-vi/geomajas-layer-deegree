@@ -1,5 +1,6 @@
 package org.deegree;
 
+import java.text.AttributedCharacterIterator.Attribute;
 import java.util.Collection;
 
 import javax.xml.namespace.QName;
@@ -8,12 +9,15 @@ import org.deegree.cs.exceptions.UnknownCRSException;
 import org.deegree.cs.persistence.CRSManager;
 import org.deegree.cs.persistence.CRSStore;
 import org.deegree.cs.refs.coordinatesystem.CRSRef;
+import org.deegree.filter.MatchAction;
 import org.deegree.filter.expression.ValueReference;
 import org.deegree.geometry.Envelope;
 import org.deegree.geometry.GeometryFactory;
 import org.deegree.geometry.standard.AbstractDefaultGeometry;
 import org.deegree.geometry.standard.DefaultEnvelope;
+import org.deegree.filter.expression.ValueReference;
 import org.geomajas.layer.LayerException;
+import org.hamcrest.core.IsInstanceOf;
 import org.opengis.filter.And;
 import org.opengis.filter.ExcludeFilter;
 import org.opengis.filter.Filter;
@@ -33,6 +37,7 @@ import org.opengis.filter.PropertyIsNotEqualTo;
 import org.opengis.filter.PropertyIsNull;
 import org.opengis.filter.expression.Expression;
 import org.opengis.filter.expression.Literal;
+import org.opengis.filter.expression.PropertyName;
 import org.opengis.filter.spatial.BBOX;
 import org.opengis.filter.spatial.Beyond;
 import org.opengis.filter.spatial.Contains;
@@ -46,6 +51,7 @@ import org.opengis.filter.spatial.Touches;
 import org.opengis.filter.spatial.Within;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.helpers.NamespaceSupport;
 
 import com.vividsolutions.jts.geom.Geometry;
 
@@ -153,7 +159,20 @@ public class DeegreeVisitor implements FilterVisitor {
 
 	@Override
 	public Object visit(PropertyIsLike filter, Object extraData) {
-		return new org.deegree.filter.comparison.PropertyIsLike(null, null, null, null, null, null, null);
+
+	    // attr name
+	    PropertyName expr = (PropertyName) filter.getExpression();
+	    org.deegree.filter.Expression propName =  new ValueReference( 
+	    			this.deegreeModel.getNSQName( expr.getPropertyName() )
+	    		);
+	    
+	    org.deegree.filter.expression.Literal lit = new org.deegree.filter.expression.Literal( filter.getLiteral() );
+		
+	    // Expression testValue, Expression pattern, String wildCard, String singleChar,String escapeChar, Boolean matchCase, MatchAction matchAction )
+		return new org.deegree.filter.comparison.PropertyIsLike(
+				propName, lit, filter.getWildCard(), 
+				filter.getSingleChar(),filter.getEscape(),
+				true, org.deegree.filter.MatchAction.ALL);
 	}
 
 	@Override
@@ -175,7 +194,8 @@ public class DeegreeVisitor implements FilterVisitor {
         ValueReference prop = new ValueReference(qnameProp);
         */
 		
-		QName qnameProp = new QName(this.deegreeModel.getNameSpaceURI() , this.deegreeModel.getGeometryAttributeName() );
+		
+		QName qnameProp = this.deegreeModel.getNSQName( this.deegreeModel.getGeometryAttributeName() );
         ValueReference prop = new ValueReference(qnameProp);
         
 		return new org.deegree.filter.spatial.BBOX( prop, envelope );
@@ -247,8 +267,7 @@ public class DeegreeVisitor implements FilterVisitor {
 
 	@Override
 	public Object visit(Intersects filter, Object extraData) {
-		QName qnameProp = new QName(this.deegreeModel.getNameSpaceURI(), 
-				this.deegreeModel.getGeometryAttributeName() );
+		QName qnameProp = this.deegreeModel.getNSQName( this.deegreeModel.getGeometryAttributeName() ); 
         ValueReference prop = new ValueReference(qnameProp);
         
 		return new org.deegree.filter.spatial.Intersects(prop, asGeometry( getLiteralValue( filter.getExpression2() ) ) );

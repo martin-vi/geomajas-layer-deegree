@@ -129,7 +129,9 @@ public class DeegreeLayer implements VectorLayer {
         
         // TODO get CRS from client or featureType
         // from config, should be 31468
-        featureModel = new DeegreeFeatureModel( this.srid, featureQName.getNamespaceURI() ); // geoService.getSridFromCrs(deegreeWFScrs)
+        //featureModel = new DeegreeFeatureModel( this.srid, featureQName.getNamespaceURI() ); // geoService.getSridFromCrs(deegreeWFScrs)
+        
+        featureModel = new DeegreeFeatureModel( this.srid, this.featureType );
         featureModel.setLayerInfo(this.layerInfo);
 
         
