@@ -45,15 +45,16 @@ http://www.springframework.org/schema/tx http://www.springframework.org/schema/t
 		Projected Bounds: 4386596.4101, 5237914.5325, 4613610.5843, 6104496.9694
  		-->		
 		<property name="crs" value="EPSG:4326" />
-		<property name="maxExtent">
+
+        <!--  13.361, 50.859, 13.440, 50.927  -->
+		<!--property name="maxExtent">
 			<bean class="org.geomajas.geometry.Bbox">
-				<!--  13.361, 50.859, 13.440, 50.927  -->
 				<property name="x" value="13.361" />
 				<property name="y" value="50.859" />
 				<property name="width" value="0.079" />
 				<property name="height" value="0.068" />
 			</bean>
-		</property>
+		</property-->
 		<property name="featureInfo" ref="layerWfsLayerFeatureInfo" />
 		<property name="namedStyleInfos">
 			<list>
