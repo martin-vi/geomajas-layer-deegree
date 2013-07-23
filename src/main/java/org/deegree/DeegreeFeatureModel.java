@@ -8,6 +8,7 @@ import javax.xml.namespace.QName;
 
 import org.deegree.commons.tom.TypedObjectNode;
 import org.deegree.commons.tom.gml.property.Property;
+import org.deegree.commons.tom.primitive.PrimitiveValue;
 import org.deegree.feature.GenericFeature;
 import org.deegree.geometry.standard.AbstractDefaultGeometry;
 import org.geomajas.configuration.VectorLayerInfo;
@@ -77,14 +78,13 @@ public class DeegreeFeatureModel implements FeatureModel {
 			}
 		}
 		
-		/* TODO convert deegree value to geomajas value */
-		System.out.println(value);
+		Attribute geomajasAttr = null;
+		if (value instanceof PrimitiveValue) {
+			PrimitiveValue dPrimitivVal = (PrimitiveValue) value;
+			geomajasAttr = new StringAttribute( dPrimitivVal.getAsText() );
+		}
 		
-		/*org.deegree.feature.Feature deegreeFeature = (org.deegree.feature.Feature) feature;
-		 * deegreeFeature.getProperties(QName.valueOf(name));
-		 */
-		Attribute geomajasAttr = new StringAttribute();
-		return null;
+		return geomajasAttr;
 		
 		//{gml_id=null, Gebietsname=null}
 	}
