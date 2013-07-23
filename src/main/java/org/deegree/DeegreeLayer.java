@@ -2,7 +2,6 @@ package org.deegree;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -10,17 +9,13 @@ import javax.annotation.PostConstruct;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
 
-import org.deegree.commons.tom.gml.property.Property;
 import org.deegree.commons.xml.XMLParsingException;
 import org.deegree.cs.exceptions.TransformationException;
 import org.deegree.cs.exceptions.UnknownCRSException;
-import org.deegree.cs.persistence.CRSManager;
 import org.deegree.feature.Feature;
+import org.deegree.feature.GenericFeatureCollection;
 import org.deegree.filter.Operator;
 import org.deegree.filter.OperatorFilter;
-import org.deegree.filter.expression.ValueReference;
-import org.deegree.filter.spatial.BBOX;
-import org.deegree.geometry.GeometryFactory;
 import org.deegree.protocol.ows.exception.OWSExceptionReport;
 import org.deegree.protocol.wfs.client.GetFeatureResponse;
 import org.deegree.protocol.wfs.client.WFSClient;
@@ -32,7 +27,6 @@ import org.geomajas.layer.LayerException;
 import org.geomajas.layer.VectorLayer;
 import org.geomajas.layer.feature.FeatureModel;
 import org.geomajas.service.GeoService;
-import org.opengis.filter.And;
 import org.opengis.filter.Filter;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.slf4j.Logger;
@@ -45,7 +39,7 @@ import com.vividsolutions.jts.geom.Envelope;
 @Api
 public class DeegreeLayer implements VectorLayer {
 	
-	private static final Operator[] Operator = null;
+	//private static final Operator[] Operator = null;
 
 	private Logger LOG = LoggerFactory.getLogger( DeegreeLayer.class );
 
@@ -62,8 +56,6 @@ public class DeegreeLayer implements VectorLayer {
 	private String getCapabilityRequest = "?service=WFS&request=GetCapabilities&version=1.1.0";
 
 	private org.deegree.geometry.Envelope featureBBox;
-
-	private ValueReference featureProp;
 
 	private DeegreeFeatureModel featureModel;
 	
@@ -103,20 +95,23 @@ public class DeegreeLayer implements VectorLayer {
 		
 		client = new WFSClient(fullUrl);
 		
+		// search for configured FeatureType
 		List<WFSFeatureType> fTypes = client.getFeatureTypes();
         for (WFSFeatureType fType: fTypes) {
         	if ( featureTypeName.equals(fType.getName().getLocalPart()) ) {
         		this.featureType = fType;
-        		LOG.debug(
-        				String.format( "feature type %s found", this.featureType.toString() ) );
+        		LOG.debug(String.format( "feature type %s found", this.featureType.toString() ) );
         		break;
         	}
         }
         
         if ( this.featureType.equals(null) ) {
         	throw new IllegalArgumentException(
-        			String.format( "feature type %s not found, check WFS GetCapabilities \"%s\"",
-        					this.featureTypeName, fullUrl.toString() ) );
+	        			String.format(
+	        					"feature type %s not found, check WFS GetCapabilities \"%s\"",
+	        					this.featureTypeName, fullUrl.toString()
+	        					) 
+        			);
         }
         
         this.featureBBox = this.featureType.getWGS84BoundingBox();
@@ -125,15 +120,10 @@ public class DeegreeLayer implements VectorLayer {
         // TODO feature property needed?
         QName featureQName = this.featureType.getName();
         
-        //geometry name
-        // this.featureGeometyPropertyName
-        //	OR
-        // this.layerInfo.getFeatureInfo().getGeometryType().getName()
-        
-        QName propertyQName = new QName(
-        		featureQName.getNamespaceURI(), this.layerInfo.getFeatureInfo().getGeometryType().getName(), featureQName.getPrefix() );
-        featureProp = new ValueReference( propertyQName );
-        LOG.debug( featureProp.toString() );		
+//        QName propertyQName = new QName(
+//        		featureQName.getNamespaceURI(), this.layerInfo.getFeatureInfo().getGeometryType().getName(), featureQName.getPrefix() );
+//        featureProp = new ValueReference( propertyQName );
+//        LOG.debug( featureProp.toString() );		
         //this.featureType.getName().valueOf(this.featureGeometyPropertyName) );
         
         
@@ -217,40 +207,17 @@ public class DeegreeLayer implements VectorLayer {
 	public Iterator<?> getElements(Filter filter, int offset, int maxResultSize) throws LayerException {
 		try {		
 			
-			org.deegree.filter.Filter dFilter = null;
-			
-
-			//DummyFilter
-		    /*
-			org.deegree.filter.Filter deegreeFilter = null;
-		    org.deegree.geometry.Envelope envelopeBox = null;
-			envelopeBox = new GeometryFactory().createEnvelope(13.361, 50.859, 13.440, 50.927, CRSManager.lookup( "EPSG:4326" ));
-	        deegreeFilter = new OperatorFilter( new BBOX( this.featureProp, envelopeBox ) );
-			*/
-			
-			// visitor pattern filter usage 
-			if (filter != null) {
-				if (filter != Filter.INCLUDE) {
-			        DeegreeVisitor deegreeVisitor = new DeegreeVisitor( this.featureModel );
-			        
-			        org.deegree.filter.Operator op = (org.deegree.filter.Operator) filter.accept(deegreeVisitor, null);
-			        if (op != null) {
-			        	dFilter = new OperatorFilter( op );
-			        }
-				}
-			}
+			org.deegree.filter.Filter dFilter = this.buildDeegreeFilter(filter);
 						
 			// do getFeature request
 		    GetFeatureResponse<Feature> result = null;
-	        //result = client.getFeatures(this.featureType.getName(), deegreeFilter);
 	        result = client.getFeatures(this.featureType.getName(), dFilter);
 			
 			// iterate over features
             WFSFeatureCollection<Feature> wfsFc = result.getAsWFSFeatureCollection();
             Iterator<Feature> iter = wfsFc.getMembers();
             
-            return iter;
-			
+            return iter;	
 			
 		} catch (OWSExceptionReport e) {
 			
@@ -271,9 +238,58 @@ public class DeegreeLayer implements VectorLayer {
 
 	@Override
 	public Envelope getBounds(Filter filter) throws LayerException {
-		getElements(filter, 0, Integer.MAX_VALUE);
 		
-		return null;
+		org.deegree.filter.Filter dFilter = this.buildDeegreeFilter( filter );
+		
+		GetFeatureResponse<Feature> result = null;
+		WFSFeatureCollection<Feature> wfsFeatureCollection = null;
+		GenericFeatureCollection deegreeFeatureCollection = new GenericFeatureCollection();
+
+	    // do getFeature request
+        try {
+			result = client.getFeatures( this.featureType.getName(), dFilter );
+			wfsFeatureCollection = result.getAsWFSFeatureCollection();
+		} catch (OWSExceptionReport e) {
+			e.printStackTrace();
+		} catch (XMLStreamException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (UnknownCRSException e) {
+			e.printStackTrace();
+		} catch (TransformationException e) {
+			e.printStackTrace();
+		}
+
+		Iterator<Feature> iter = wfsFeatureCollection.getMembers();
+		while ( iter.hasNext() ) {
+			deegreeFeatureCollection.add( iter.next() );
+		}
+        org.deegree.geometry.Envelope dEnvelope = deegreeFeatureCollection.calcEnvelope();
+		
+        //  public void init(double x1, double x2, double y1, double y2)
+        Envelope filterEnvelope = new Envelope(
+        		dEnvelope.getMin().get0(), dEnvelope.getMax().get0(),
+        		dEnvelope.getMin().get1(), dEnvelope.getMax().get1() );
+		
+		return filterEnvelope;
+	}
+	
+	private org.deegree.filter.Filter buildDeegreeFilter(Filter filter) throws LayerException {
+		org.deegree.filter.Filter dFilter = null;
+		
+		// visitor pattern filter usage 
+		if (filter != null) {
+			if (filter != Filter.INCLUDE) {
+		        DeegreeVisitor deegreeVisitor = new DeegreeVisitor( this.featureModel );
+		        
+		        org.deegree.filter.Operator op = (org.deegree.filter.Operator) filter.accept(deegreeVisitor, null);
+		        if (op != null) {
+		        	dFilter = new OperatorFilter( op );
+		        }
+			}
+		}
+		return dFilter;
 	}
 
 	@Override
