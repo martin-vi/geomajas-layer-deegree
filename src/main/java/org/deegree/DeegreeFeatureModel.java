@@ -14,159 +14,135 @@ import org.deegree.geometry.standard.AbstractDefaultGeometry;
 import org.deegree.protocol.wfs.metadata.WFSFeatureType;
 import org.geomajas.configuration.VectorLayerInfo;
 import org.geomajas.layer.LayerException;
-import org.geomajas.layer.entity.EntityAttributeService;
-import org.geomajas.layer.entity.EntityMapper;
 import org.geomajas.layer.feature.Attribute;
 import org.geomajas.layer.feature.FeatureModel;
 import org.geomajas.layer.feature.attribute.StringAttribute;
 import org.opengis.feature.simple.SimpleFeature;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKTReader;
 
 public class DeegreeFeatureModel implements FeatureModel {
-	
-	private VectorLayerInfo vectorLayerInfo;
-	
-	private int srid;
-	
-	private String nameSpaceURI;
 
-	private WFSFeatureType featureType;
+    private VectorLayerInfo vectorLayerInfo;
+    private int srid;
+    private String nameSpaceURI;
+    private WFSFeatureType featureType;
 
-	/* Entity mapping for Attributes */
+    /* Entity mapping for Attributes */
 //	@Autowired
 //	private EntityAttributeService entityMappingService;
 //	private EntityMapper entityMapper;
-	
-	//private Object dICRS;
-	
-	public DeegreeFeatureModel( int srid, WFSFeatureType featureType ) throws LayerException  {
-		super();
-		this.srid = srid;
-		
-		this.featureType = featureType;
-	}
+    //private Object dICRS;
+    public DeegreeFeatureModel(int srid, WFSFeatureType featureType) throws LayerException {
+        super();
+        this.srid = srid;
 
-	public QName getNSQName(String propName) {
-		return new QName(
-				this.featureType.getName().getNamespaceURI(),
-				propName, this.featureType.getName().getPrefix()
-				);
-	}
-		
-	@Override
-	public void setLayerInfo(VectorLayerInfo vectorLayerInfo) {
-		this.vectorLayerInfo = vectorLayerInfo;
-	}
+        this.featureType = featureType;
+    }
 
-	@SuppressWarnings({ "rawtypes", "unused" })
-	@Override
-					// Object org.deegree.feature.GenericFeature , String "gml_id"
-	public Attribute getAttribute(Object feature, String name)
-			throws LayerException {
-		GenericFeature dFeature = (org.deegree.feature.GenericFeature) feature;
-		
-		//TODO hard coded ns 
-		String NS = "http://org.maptools.org/"; 
-		
-		//List<Property> prop = dFeature.getProperties( new QName(NS, name, "ogr" ) );
-		TypedObjectNode value = null;
-		List<Property> prop = dFeature.getProperties();
-		for (Property p : prop) {
-			if ( p.getName().getLocalPart().equals(name) ) {
-				value = p.getValue();
-				break;
-			}
-		}
-		
-		Attribute geomajasAttr = null;
-		if (value instanceof PrimitiveValue) {
-			PrimitiveValue dPrimitivVal = (PrimitiveValue) value;
-			geomajasAttr = new StringAttribute( dPrimitivVal.getAsText() );
-		}
-		
-		return geomajasAttr;
-		
-		//{gml_id=null, Gebietsname=null}
-	}
+    public QName getNSQName(String propName) {
+        return new QName(
+                this.featureType.getName().getNamespaceURI(),
+                propName, this.featureType.getName().getPrefix());
+    }
 
-	@Override
-	public Map<String, Attribute> getAttributes(Object feature) throws LayerException {
-		
-		// at the moment return an empty attribute map
-		HashMap<String, Attribute> attribs = new HashMap<String, Attribute>();
-		return attribs;
-	}
+    @Override
+    public void setLayerInfo(VectorLayerInfo vectorLayerInfo) {
+        this.vectorLayerInfo = vectorLayerInfo;
+    }
 
-	@Override
-	public String getId(Object feature) throws LayerException {
-		org.deegree.feature.Feature deegreeFeature = (org.deegree.feature.Feature) feature;
-		return deegreeFeature.getId();
-	}
+    @SuppressWarnings({"rawtypes", "unused"})
+    @Override
+    // Object org.deegree.feature.GenericFeature , String "gml_id"
+    public Attribute getAttribute(Object feature, String name)
+            throws LayerException {
+        GenericFeature dFeature = (org.deegree.feature.GenericFeature) feature;
 
-	@Override
-	public Geometry getGeometry(Object feature) throws LayerException {
-		org.deegree.feature.Feature deegreeFeature = (org.deegree.feature.Feature) feature;
-		
-		// TODO get all geometries
-		//org.deegree.commons.tom.gml.property.Property geometry = deegreeFeature.getGeometryProperties().get(0);
-		org.deegree.geometry.Geometry geometry = org.deegree.filter.utils.FilterUtils.getGeometryValue(
-					deegreeFeature.getGeometryProperties().get(0).getValue()
-				);
-		AbstractDefaultGeometry deegreeGeometry = (AbstractDefaultGeometry)geometry;
-		//geometry.getJTSGeometry()
-		
-		Geometry jtsGeometry = deegreeGeometry.getJTSGeometry();
-		
-		//jtsGeometry = new WKTReader().read(geometry.toString());
-		//TypedObjectNode a = geometry.getValue();
-		
-		//jtsGeometry = (com.vividsolutions.jts.geom.Geometry)geometry;
-		
-		jtsGeometry.setSRID(srid);
-		return (Geometry) jtsGeometry.clone();
-	}
+        //TODO hard coded ns 
+        String NS = "http://org.maptools.org/";
 
-	@Override
-	public void setAttributes(Object feature, Map<String, Attribute> attributes)
-			throws LayerException {
-		// do nothing here ...
-	}
+        //List<Property> prop = dFeature.getProperties( new QName(NS, name, "ogr" ) );
+        TypedObjectNode value = null;
+        List<Property> prop = dFeature.getProperties();
+        for (Property p : prop) {
+            if (p.getName().getLocalPart().equals(name)) {
+                value = p.getValue();
+                break;
+            }
+        }
 
-	@Override
-	public void setGeometry(Object feature, Geometry geometry)
-			throws LayerException {
-		// do nothing here ...
-	}
+        Attribute geomajasAttr = null;
+        if (value instanceof PrimitiveValue) {
+            PrimitiveValue dPrimitivVal = (PrimitiveValue) value;
+            geomajasAttr = new StringAttribute(dPrimitivVal.getAsText());
+        }
 
-	@Override
-	public Object newInstance() throws LayerException {
-		// do nothing here ...	
-		return null;
-	}
+        return geomajasAttr;
+    }
 
-	@Override
-	public Object newInstance(String id) throws LayerException {
-		// do nothing here ...	
-		return null;
-	}
+    @Override
+    public Map<String, Attribute> getAttributes(Object feature) throws LayerException {
 
-	@Override
-	public int getSrid() throws LayerException {
-		return this.srid;
-	}
+        // at the moment return an empty attribute map
+        HashMap<String, Attribute> attribs = new HashMap<String, Attribute>();
+        return attribs;
+    }
 
-	@Override
-	public String getGeometryAttributeName()  {
-		return vectorLayerInfo.getFeatureInfo().getGeometryType().getName();
-	}
+    @Override
+    public String getId(Object feature) throws LayerException {
+        org.deegree.feature.Feature deegreeFeature = (org.deegree.feature.Feature) feature;
+        return deegreeFeature.getId();
+    }
 
-	@Override
-	public boolean canHandle(Object feature) {
-		return feature instanceof SimpleFeature;
-	}
+    @Override
+    public Geometry getGeometry(Object feature) throws LayerException {
+        org.deegree.feature.Feature deegreeFeature = (org.deegree.feature.Feature) feature;
 
+        // TODO get all geometries
+        org.deegree.geometry.Geometry geometry = org.deegree.filter.utils.FilterUtils.getGeometryValue(
+                deegreeFeature.getGeometryProperties().get(0).getValue());
+        AbstractDefaultGeometry deegreeGeometry = (AbstractDefaultGeometry) geometry;
+
+        Geometry jtsGeometry = deegreeGeometry.getJTSGeometry();
+        jtsGeometry.setSRID(srid);
+        return (Geometry) jtsGeometry.clone();
+    }
+
+    @Override
+    public void setAttributes(Object feature, Map<String, Attribute> attributes)
+            throws LayerException {
+        // do nothing here ...
+    }
+
+    @Override
+    public void setGeometry(Object feature, Geometry geometry)
+            throws LayerException {
+        // do nothing here ...
+    }
+
+    @Override
+    public Object newInstance() throws LayerException {
+        // do nothing here ...	
+        return null;
+    }
+
+    @Override
+    public Object newInstance(String id) throws LayerException {
+        // do nothing here ...	
+        return null;
+    }
+
+    @Override
+    public int getSrid() throws LayerException {
+        return this.srid;
+    }
+
+    @Override
+    public String getGeometryAttributeName() {
+        return vectorLayerInfo.getFeatureInfo().getGeometryType().getName();
+    }
+
+    @Override
+    public boolean canHandle(Object feature) {
+        return feature instanceof SimpleFeature;
+    }
 }

@@ -14,7 +14,6 @@ import org.deegree.cs.exceptions.TransformationException;
 import org.deegree.cs.exceptions.UnknownCRSException;
 import org.deegree.feature.Feature;
 import org.deegree.feature.GenericFeatureCollection;
-import org.deegree.filter.Operator;
 import org.deegree.filter.OperatorFilter;
 import org.deegree.protocol.ows.exception.OWSExceptionReport;
 import org.deegree.protocol.wfs.client.GetFeatureResponse;
@@ -240,41 +239,41 @@ public class DeegreeLayer implements VectorLayer {
 
 	@Override
 	public Envelope getBounds(Filter filter) throws LayerException {
-		
-		org.deegree.filter.Filter dFilter = this.buildDeegreeFilter( filter );
-		
-		GetFeatureResponse<Feature> result = null;
-		WFSFeatureCollection<Feature> wfsFeatureCollection = null;
-		GenericFeatureCollection deegreeFeatureCollection = new GenericFeatureCollection();
+            
+            org.deegree.filter.Filter dFilter = this.buildDeegreeFilter(filter);
 
-	    // do getFeature request
-        try {
-			result = client.getFeatures( this.featureType.getName(), dFilter );
-			wfsFeatureCollection = result.getAsWFSFeatureCollection();
-		} catch (OWSExceptionReport e) {
-			e.printStackTrace();
-		} catch (XMLStreamException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (UnknownCRSException e) {
-			e.printStackTrace();
-		} catch (TransformationException e) {
-			e.printStackTrace();
-		}
+            GetFeatureResponse<Feature> result = null;
+            WFSFeatureCollection<Feature> wfsFeatureCollection = null;
+            GenericFeatureCollection deegreeFeatureCollection = new GenericFeatureCollection();
 
-		Iterator<Feature> iter = wfsFeatureCollection.getMembers();
-		while ( iter.hasNext() ) {
-			deegreeFeatureCollection.add( iter.next() );
-		}
-        org.deegree.geometry.Envelope dEnvelope = deegreeFeatureCollection.calcEnvelope();
-		
-        //  public void init(double x1, double x2, double y1, double y2)
-        Envelope filterEnvelope = new Envelope(
-        		dEnvelope.getMin().get0(), dEnvelope.getMax().get0(),
-        		dEnvelope.getMin().get1(), dEnvelope.getMax().get1() );
-		
-		return filterEnvelope;
+            // do getFeature request
+            try {
+                result = client.getFeatures(this.featureType.getName(), dFilter);
+                wfsFeatureCollection = result.getAsWFSFeatureCollection();
+            } catch (OWSExceptionReport e) {
+                e.printStackTrace();
+            } catch (XMLStreamException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (UnknownCRSException e) {
+                e.printStackTrace();
+            } catch (TransformationException e) {
+                e.printStackTrace();
+            }
+
+            Iterator<Feature> iter = wfsFeatureCollection.getMembers();
+            while (iter.hasNext()) {
+                deegreeFeatureCollection.add(iter.next());
+            }
+            org.deegree.geometry.Envelope dEnvelope = deegreeFeatureCollection.calcEnvelope();
+
+            //  public void init(double x1, double x2, double y1, double y2)
+            Envelope filterEnvelope = new Envelope(
+                    dEnvelope.getMin().get0(), dEnvelope.getMax().get0(),
+                    dEnvelope.getMin().get1(), dEnvelope.getMax().get1());
+
+            return filterEnvelope;
 	}
 	
 	private org.deegree.filter.Filter buildDeegreeFilter(Filter filter) throws LayerException {
