@@ -96,44 +96,43 @@ public class DeegreeLayer implements VectorLayer {
 		
 		// search for configured FeatureType
 		List<WFSFeatureType> fTypes = client.getFeatureTypes();
-        for (WFSFeatureType fType: fTypes) {
-        	if ( featureTypeName.equals(fType.getName().getLocalPart()) ) {
-        		this.featureType = fType;
-        		LOG.debug(String.format( "feature type %s found", this.featureType.toString() ) );
-        		break;
-        	}
-        }
-        
-        if ( this.featureType.equals(null) ) {
-        	throw new IllegalArgumentException(
-	        			String.format(
-	        					"feature type %s not found, check WFS GetCapabilities \"%s\"",
-	        					this.featureTypeName, fullUrl.toString()
-	        					) 
-        			);
-        }
-        
-        this.featureBBox = this.featureType.getWGS84BoundingBox();
-        LOG.debug( "feature type WGS84 bounding box " + this.featureBBox.toString() );
-        
-        // TODO feature property needed?
-        QName featureQName = this.featureType.getName();
-        
-//        QName propertyQName = new QName(
-//        		featureQName.getNamespaceURI(), this.layerInfo.getFeatureInfo().getGeometryType().getName(), featureQName.getPrefix() );
-//        featureProp = new ValueReference( propertyQName );
-//        LOG.debug( featureProp.toString() );		
-        //this.featureType.getName().valueOf(this.featureGeometyPropertyName) );
-        
-        
-        // TODO get CRS from client or featureType
-        // from config, should be 31468
-        //featureModel = new DeegreeFeatureModel( this.srid, featureQName.getNamespaceURI() ); // geoService.getSridFromCrs(deegreeWFScrs)
-        
-        featureModel = new DeegreeFeatureModel( this.srid, this.featureType );
-        featureModel.setLayerInfo(this.layerInfo);
+                for (WFSFeatureType fType: fTypes) {
+                        if ( featureTypeName.equals(fType.getName().getLocalPart()) ) {
+                                this.featureType = fType;
+                                LOG.debug(String.format( "feature type %s found", this.featureType.toString() ) );
+                                break;
+                        }
+                }
 
-        
+                if ( this.featureType == null ) {
+                        throw new IllegalArgumentException(
+                                                String.format(
+                                                                "feature type %s not found, check WFS GetCapabilities \"%s\"",
+                                                                this.featureTypeName, fullUrl.toString()
+                                                                ) 
+                                        );
+                }
+
+                this.featureBBox = this.featureType.getWGS84BoundingBox();
+                LOG.debug( "feature type WGS84 bounding box " + this.featureBBox.toString() );
+
+                // TODO feature property needed?
+                QName featureQName = this.featureType.getName();
+
+        //        QName propertyQName = new QName(
+        //        		featureQName.getNamespaceURI(), this.layerInfo.getFeatureInfo().getGeometryType().getName(), featureQName.getPrefix() );
+        //        featureProp = new ValueReference( propertyQName );
+        //        LOG.debug( featureProp.toString() );		
+                //this.featureType.getName().valueOf(this.featureGeometyPropertyName) );
+
+
+                // TODO get CRS from client or featureType
+                // from config, should be 31468
+                //featureModel = new DeegreeFeatureModel( this.srid, featureQName.getNamespaceURI() ); // geoService.getSridFromCrs(deegreeWFScrs)
+
+                featureModel = new DeegreeFeatureModel( this.srid, this.featureType );
+                featureModel.setLayerInfo(this.layerInfo);
+
 	}
 	
 	public void setLayerInfo(VectorLayerInfo layerInfo) throws LayerException {

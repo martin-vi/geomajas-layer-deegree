@@ -57,10 +57,6 @@ public class DeegreeFeatureModel implements FeatureModel {
             throws LayerException {
         GenericFeature dFeature = (org.deegree.feature.GenericFeature) feature;
 
-        //TODO hard coded ns 
-        String NS = "http://org.maptools.org/";
-
-        //List<Property> prop = dFeature.getProperties( new QName(NS, name, "ogr" ) );
         TypedObjectNode value = null;
         List<Property> prop = dFeature.getProperties();
         for (Property p : prop) {

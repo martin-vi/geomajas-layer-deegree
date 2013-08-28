@@ -1,12 +1,9 @@
 package org.deegree;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 
-import org.deegree.feature.Feature;
-import org.deegree.protocol.wfs.client.WFSFeatureCollection;
 import org.geomajas.configuration.FeatureInfo;
 import org.geomajas.global.GeomajasException;
 import org.geomajas.layer.LayerException;

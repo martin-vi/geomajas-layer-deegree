@@ -13,6 +13,10 @@
 	<packaging>jar</packaging>
 	<name>geomajas-layer-deegree</name>
 
+        <properties>
+            <checkstyle.skip>true</checkstyle.skip>
+            <skipTests>true</skipTests>
+        </properties>
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
